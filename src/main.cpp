@@ -1,16 +1,26 @@
 #include <Geode/Geode.hpp>
-#include <Geode/modify/CCEGLView.hpp>
 #include <Geode/modify/CCScene.hpp>
 #include "Broverlay.hpp"
 
 using namespace geode::prelude;
 
+#if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_IOS)
+#include <Geode/modify/CCEGLView.hpp>
 class $modify(MyCCEGLView, CCEGLView) {
     void swapBuffers() {
         Broverlay::get()->visit();
         CCEGLView::swapBuffers();
     }
 };
+#else
+#include <Geode/modify/CCDirector.hpp>
+class $modify(MyCCDirector, CCDirector) {
+    void drawScene() {
+        CCDirector::drawScene();
+        Broverlay::get()->visit();
+    }
+};
+#endif
 
 class FunnyCCScene : public CCScene {
     CCArray* getChildren() override {
