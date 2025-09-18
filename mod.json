@@ -1,0 +1,28 @@
+{
+    "geode": "4.8.0",
+    "gd": {
+        "win": "2.2074",
+        "android": "2.2074",
+        "mac": "2.2074",
+        "ios": "2.2074"
+    },
+    "id": "alphalaneous.broverlay",
+    "name": "Broverlay",
+    "version": "v1.0.0",
+    "developer": "Alphalaneous",
+    "description": "make overlays..like actually work bro",
+    "links": {
+        "homepage": "https://linktr.ee/Alphalaneous",
+        "source": "https://github.com/Alphalaneous/To-the-top",
+        "community": "https://discord.gg/Txn2CA5dHF"
+    },
+    "incompatibilities": {
+        "alphalaneous.to_the_top": {
+            "version": ">=v1.0.0",
+            "importance": "superseded"
+        }
+    },
+    "tags": [
+        "bugfix", "interface"
+    ]
+}
