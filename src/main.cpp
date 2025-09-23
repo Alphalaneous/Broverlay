@@ -1,6 +1,5 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CCScene.hpp>
-#include <Geode/utils/VMTHookManager.hpp>
 #include "Broverlay.hpp"
 
 using namespace geode::prelude;
@@ -23,20 +22,10 @@ class $modify(MyCCDirector, CCDirector) {
 };
 #endif
 
-class $modify(MyCCScene, CCScene) {
-    bool init() {
-        if (!CCScene::init()) return false;
-        if (!typeinfo_cast<CCTransitionScene*>(this)) {
-            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::getChildren)>(this, "cocos2d::CCScene::getChildren");
-            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::getChildrenCount)>(this, "cocos2d::CCScene::getChildrenCount");
-            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::onEnter)>(this, "cocos2d::CCScene::onEnter");
-        }
-        return true;
-    }
-
-    CCArray* getChildren() {
+class FunnyCCScene : public CCScene {
+    CCArray* getChildren() override {
         // this can return nullptr :(
-        auto children = CCNode::getChildren();
+        auto children = CCScene::getChildren();
         // I don't wanna actually add them to the children array
         if (children) children = children->shallowCopy();
         else children = CCArray::create();
@@ -46,13 +35,56 @@ class $modify(MyCCScene, CCScene) {
         return children;
     }
 
-    unsigned int getChildrenCount(void) const {
+    unsigned int getChildrenCount(void) const override {
         return CCNode::getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
     }
 
-    void onEnter() {
-        CCNode::onEnter();
+    void onEnter() override {
+        CCScene::onEnter();
         Broverlay::get()->onEnter();
+    }
+};
+
+// we wanna keep the typeinfo intact
+template <typename Base, typename Override>
+void** getPatchedVTable() {
+    static void** patched = nullptr;
+    if (patched) return patched;
+
+    struct NoticesSizeOfVTable : Base {
+        virtual void rawrX3NuzzlesYou() {}
+    };
+
+    Base based;
+    NoticesSizeOfVTable bulgyWulgy;
+
+    void** baseVTable = *reinterpret_cast<void***>(&based);
+    void** derivedVTable = *reinterpret_cast<void***>(&bulgyWulgy);
+
+    size_t numSlots = 0;
+    while (baseVTable[numSlots] != derivedVTable[numSlots]) ++numSlots;
+
+    Override override;
+    void** overrideVTable = *reinterpret_cast<void***>(&override);
+
+    void** table = new void*[numSlots + 2];
+
+    std::memcpy(table, overrideVTable - 2, sizeof(void*) * (numSlots + 2));
+
+    table[0] = (baseVTable - 2)[0];
+    table[1] = (baseVTable - 2)[1];
+
+    patched = table + 2;
+    return patched;
+}
+
+class $modify(MyCCScene, CCScene) {
+    bool init() {
+        if (!CCScene::init()) return false;
+        if (!typeinfo_cast<CCTransitionScene*>(this)) {
+            *reinterpret_cast<void**>(this) = getPatchedVTable<CCScene, FunnyCCScene>();
+        }
+        return true;
     }
 };
 
