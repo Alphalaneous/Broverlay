@@ -23,7 +23,7 @@ class $modify(MyCCDirector, CCDirector) {
 #endif
 
 class FunnyCCScene : public CCScene {
-    CCArray* getChildren() override {
+    /*CCArray* getChildren() override {
         // this can return nullptr :(
         auto children = CCScene::getChildren();
         // I don't wanna actually add them to the children array
@@ -33,16 +33,16 @@ class FunnyCCScene : public CCScene {
             children->addObject(persisted);
         }
         return children;
-    }
+    }*/
 
     unsigned int getChildrenCount(void) const override {
-        return CCNode::getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
+        return CCNode::getChildrenCount();// + SceneManager::get()->getPersistedNodes().size();
     }
 
-    void onEnter() override {
+    /*void onEnter() override {
         CCScene::onEnter();
         Broverlay::get()->onEnter();
-    }
+    }*/
 };
 
 // this is very chatgpt, hoping it works well
