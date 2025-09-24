@@ -76,10 +76,10 @@ class $modify(MyCCScene, CCScene) {
     
     #if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_INTEL_MAC)
     bool init() {
-        if (!CCScene::init()) return false;
         if (!typeinfo_cast<CCTransitionScene*>(this)) {
             patchVirtuals<CCScene, FunnyCCScene>(this);
         }
+        if (!CCScene::init()) return false;
         return true;
     }
     #else
@@ -96,7 +96,7 @@ class $modify(MyCCScene, CCScene) {
 
     CCArray* getChildren() {
         // this can return nullptr :(
-        auto children = CCNode::getChildren();
+        auto children = this->getChildren();
         // I don't wanna actually add them to the children array
         if (children) children = children->shallowCopy();
         else children = CCArray::create();
@@ -106,12 +106,12 @@ class $modify(MyCCScene, CCScene) {
         return children;
     }
 
-    unsigned int getChildrenCount(void) const {
-        return CCNode::getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
+    unsigned int getChildrenCount() const {
+        return this->getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
     }
 
     void onEnter() {
-        CCNode::onEnter();
+        this->onEnter();
         Broverlay::get()->onEnter();
     }
     #endif
@@ -127,6 +127,18 @@ void forget_H(SceneManager* self, cocos2d::CCNode* node) {
     self->forget(node);
 }
 
+CCNode* getChildByIDRecursive_H(CCNode* self, std::string_view id) {
+    if (auto child = self->getChildByID(id)) {
+        return child;
+    }
+    for (auto child : CCArrayExt<CCNode*>(self->getChildren())) {
+        if ((child = child->getChildByIDRecursive(id))) {
+            return child;
+        }
+    }
+    return nullptr;
+}
+
 $on_mod(Loaded) {
     (void) Mod::get()->hook(
         reinterpret_cast<void*>(addresser::getNonVirtual(&SceneManager::keepAcrossScenes)),
@@ -138,6 +150,12 @@ $on_mod(Loaded) {
         reinterpret_cast<void*>(addresser::getNonVirtual(&SceneManager::forget)),
         &forget_H,
         "SceneManager::forget"
+    );
+
+    (void) Mod::get()->hook(
+        reinterpret_cast<void*>(addresser::getNonVirtual(&CCNode::getChildByIDRecursive)),
+        &getChildByIDRecursive_H,
+        "CCNode::getChildByIDRecursive"
     );
 
     // get rekt nerd, we don't like you
