@@ -4,7 +4,6 @@
 
 using namespace geode::prelude;
 
-#if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_IOS)
 #include <Geode/modify/CCEGLView.hpp>
 class $modify(MyCCEGLView, CCEGLView) {
     void swapBuffers() {
@@ -12,18 +11,9 @@ class $modify(MyCCEGLView, CCEGLView) {
         CCEGLView::swapBuffers();
     }
 };
-#else
-#include <Geode/modify/CCDirector.hpp>
-class $modify(MyCCDirector, CCDirector) {
-    void drawScene() {
-        CCDirector::drawScene();
-        Broverlay::get()->visit();
-    }
-};
-#endif
 
 class FunnyCCScene : public CCScene {
-    /*CCArray* getChildren() override {
+    CCArray* getChildren() override {
         // this can return nullptr :(
         auto children = CCScene::getChildren();
         // I don't wanna actually add them to the children array
@@ -33,16 +23,16 @@ class FunnyCCScene : public CCScene {
             children->addObject(persisted);
         }
         return children;
-    }*/
-
-    unsigned int getChildrenCount(void) const override {
-        return CCNode::getChildrenCount();// + SceneManager::get()->getPersistedNodes().size();
     }
 
-    /*void onEnter() override {
+    unsigned int getChildrenCount(void) const override {
+        return CCNode::getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
+    }
+
+    void onEnter() override {
         CCScene::onEnter();
         Broverlay::get()->onEnter();
-    }*/
+    }
 };
 
 // this is very chatgpt, hoping it works well
@@ -82,6 +72,8 @@ void patchVirtuals(Base* obj) {
 }
 
 class $modify(MyCCScene, CCScene) {
+    
+    #if defined(GEODE_IS_WINDOWS) || defined(GEODE_IS_INTEL_MAC)
     bool init() {
         if (!CCScene::init()) return false;
         if (!typeinfo_cast<CCTransitionScene*>(this)) {
@@ -89,6 +81,39 @@ class $modify(MyCCScene, CCScene) {
         }
         return true;
     }
+    #else
+
+    bool init() {
+        if (!CCScene::init()) return false;
+        if (!typeinfo_cast<CCTransitionScene*>(this)) {
+            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::getChildren)>(this, "cocos2d::CCScene::getChildren");
+            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::getChildrenCount)>(this, "cocos2d::CCScene::getChildrenCount");
+            (void) VMTHookManager::get().addHook<ResolveC<MyCCScene>::func(&MyCCScene::onEnter)>(this, "cocos2d::CCScene::onEnter");
+        }
+        return true;
+    }
+
+    CCArray* getChildren() override {
+        // this can return nullptr :(
+        auto children = this->getChildren();
+        // I don't wanna actually add them to the children array
+        if (children) children = children->shallowCopy();
+        else children = CCArray::create();
+        for (auto persisted : SceneManager::get()->getPersistedNodes()) {
+            children->addObject(persisted);
+        }
+        return children;
+    }
+
+    unsigned int getChildrenCount(void) const override {
+        return this->getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
+    }
+
+    void onEnter() override {
+        this->onEnter();
+        Broverlay::get()->onEnter();
+    }
+    #endif
 };
 
 void keepAcrossScenes_H(SceneManager* self, cocos2d::CCNode* node) {
