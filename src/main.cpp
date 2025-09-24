@@ -1,5 +1,6 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/CCScene.hpp>
+#include <Geode/utils/VMTHookManager.hpp>
 #include "Broverlay.hpp"
 
 using namespace geode::prelude;
@@ -93,7 +94,7 @@ class $modify(MyCCScene, CCScene) {
         return true;
     }
 
-    CCArray* getChildren() override {
+    CCArray* getChildren() {
         // this can return nullptr :(
         auto children = this->getChildren();
         // I don't wanna actually add them to the children array
@@ -105,11 +106,11 @@ class $modify(MyCCScene, CCScene) {
         return children;
     }
 
-    unsigned int getChildrenCount(void) const override {
+    unsigned int getChildrenCount(void) const {
         return this->getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
     }
 
-    void onEnter() override {
+    void onEnter() {
         this->onEnter();
         Broverlay::get()->onEnter();
     }
