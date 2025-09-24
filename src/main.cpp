@@ -96,7 +96,7 @@ class $modify(MyCCScene, CCScene) {
 
     CCArray* getChildren() {
         // this can return nullptr :(
-        auto children = this->getChildren();
+        auto children = CCNode::getChildren();
         // I don't wanna actually add them to the children array
         if (children) children = children->shallowCopy();
         else children = CCArray::create();
@@ -107,11 +107,11 @@ class $modify(MyCCScene, CCScene) {
     }
 
     unsigned int getChildrenCount(void) const {
-        return this->getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
+        return CCNode::getChildrenCount() + SceneManager::get()->getPersistedNodes().size();
     }
 
     void onEnter() {
-        this->onEnter();
+        CCNode::onEnter();
         Broverlay::get()->onEnter();
     }
     #endif
