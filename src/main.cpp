@@ -45,44 +45,47 @@ class FunnyCCScene : public CCScene {
     }
 };
 
-// we wanna keep the typeinfo intact
-template <typename Base, typename Override>
-void** getPatchedVTable() {
+// this is very chatgpt, hoping it works well
+template <typename Base, typename Derived>
+void patchVirtuals(Base* obj) {
     static void** patched = nullptr;
-    if (patched) return patched;
+    if (patched) {
+        *reinterpret_cast<void***>(obj) = patched;
+        return;
+    }
 
-    struct NoticesSizeOfVTable : Base {
-        virtual void rawrX3NuzzlesYou() {}
-    };
+    Base baseDummy;
+    Derived derivedDummy;
 
-    Base based;
-    NoticesSizeOfVTable bulgyWulgy;
-
-    void** baseVTable = *reinterpret_cast<void***>(&based);
-    void** derivedVTable = *reinterpret_cast<void***>(&bulgyWulgy);
+    void** baseVTable    = *reinterpret_cast<void***>(&baseDummy);
+    void** derivedVTable = *reinterpret_cast<void***>(&derivedDummy);
 
     size_t numSlots = 0;
-    while (baseVTable[numSlots] != derivedVTable[numSlots]) ++numSlots;
+    while (numSlots < 128 && baseVTable[numSlots] != derivedVTable[numSlots])
+        ++numSlots;
 
-    Override override;
-    void** overrideVTable = *reinterpret_cast<void***>(&override);
+    constexpr size_t header_size = 2;
 
-    void** table = new void*[numSlots + 2];
+    void** newTable = new void*[header_size + numSlots];
 
-    std::memcpy(table, overrideVTable - 2, sizeof(void*) * (numSlots + 2));
+    std::memcpy(newTable, baseVTable - header_size, sizeof(void*) * header_size);
 
-    table[0] = (baseVTable - 2)[0];
-    table[1] = (baseVTable - 2)[1];
+    std::memcpy(newTable + header_size, baseVTable, sizeof(void*) * numSlots);
+    for (size_t i = 0; i < numSlots; ++i) {
+        if (baseVTable[i] != derivedVTable[i]) {
+            newTable[header_size + i] = derivedVTable[i];
+        }
+    }
 
-    patched = table + 2;
-    return patched;
+    patched = newTable + header_size;
+    *reinterpret_cast<void***>(obj) = patched;
 }
 
 class $modify(MyCCScene, CCScene) {
     bool init() {
         if (!CCScene::init()) return false;
         if (!typeinfo_cast<CCTransitionScene*>(this)) {
-            *reinterpret_cast<void**>(this) = getPatchedVTable<CCScene, FunnyCCScene>();
+            patchVirtuals<CCScene, FunnyCCScene>(this);
         }
         return true;
     }
