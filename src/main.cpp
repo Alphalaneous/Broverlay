@@ -143,7 +143,11 @@ $on_mod(Loaded) {
     // get rekt nerd, we don't like you
     auto geode = Loader::get()->getInstalledMod("geode.loader");
     for (auto hook : geode->getHooks()) {
+        #ifdef GEODE_IS_WINDOWS
         if (hook->getDisplayName() == "AppDelegate::willSwitchToScene") {
+        #else
+        if (hook->getDisplayName() == "AchievementNotifier::willSwitchToScene") {
+        #endif
             (void)hook->disable();
             break;
         }
